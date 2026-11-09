@@ -8,17 +8,17 @@ ROLES = [
  ('Mean reversion','بازگشت به میانگین'), ('Volume analyst','حجم نسبی'),
  ('Price action','بازده کوتاه‌مدت'), ('Market regime','وضعیت بازار'),
  ('Risk manager','کنترل ریسک'), ('Data quality','کیفیت داده'),
- ('Cost analyst','هزینه اجرا'), ('Liquidity analyst','نقدشوندگی'),
- ('Derivatives analyst','مشتقات'), ('News & sentiment','اخبار و احساسات'),
- ('Grok strategist','تحلیل زبانی اختیاری')]
+ ('Stochastic analyst','استوکاستیک'), ('VWAP analyst','میانگین وزنی حجم'),
+ ('Range analyst','دامنه معاملاتی'), ('Candle analyst','ساختار کندل'),
+ ('Acceleration analyst','شتاب بازده')]
 
 class FuturesScanner:
  def __init__(self, factory=None):
-  self.factory=factory; self.lock=threading.RLock(); self.stop_event=threading.Event(); self.thread=None
+  self.factory=factory; self.lock=threading.RLock(); self.stop_event=threading.Event(); self.wake_event=threading.Event(); self.thread=None
   self.exchange_id=os.getenv('EXCHANGE_ID','bybit'); self.symbols=[s.strip() for s in os.getenv('FUTURES_SYMBOLS','BTC/USDT:USDT,ETH/USDT:USDT,SOL/USDT:USDT').split(',') if s.strip()][:20]
   try: self.interval=max(60,int(os.getenv('SCAN_INTERVAL_SECONDS','300')))
   except ValueError: self.interval=300
-  self.data={'status':'starting','exchange':self.exchange_id,'last_scan':None,'next_scan':None,'results':[],'errors':[],'selected':None,'scope':'USDT perpetual swaps','activity':[],'progress':{'completed':0,'total':len(self.symbols),'symbol':None},'agents':[{'name':name,'role':role,'status':'در انتظار داده','detail':'هنوز تحلیل معتبر دریافت نشده است'} for name,role in ROLES]}
+  self.data={'status':'starting','exchange':self.exchange_id,'last_scan':None,'next_scan':None,'results':[],'errors':[],'selected':None,'focus':None,'scope':'USDT perpetual swaps','activity':[],'progress':{'completed':0,'total':len(self.symbols),'symbol':None},'agents':[{'name':name,'role':role,'status':'در انتظار داده','detail':'هنوز تحلیل معتبر دریافت نشده است'} for name,role in ROLES]}
  def event(self, message, level='info'):
   with self.lock:
    self.data['activity'].insert(0,{'time':time.time(),'level':level,'message':message})
@@ -35,12 +35,24 @@ class FuturesScanner:
  def get(self):
   with self.lock:
    result=copy.deepcopy(self.data)
+  result['symbols']=self.symbols[:]
+  if result['focus']:
+   focus_result=next((item for item in result['results'] if item['symbol']==result['focus']),None)
+   result['selected']=focus_result
+   result['agents']=copy.deepcopy(focus_result['agents']) if focus_result else [{'name':name,'role':role,'status':'بدون داده' if result['status']=='error' else 'در انتظار داده','detail':'تحلیل این قرارداد هنوز آماده نیست'} for name,role in ROLES]
   # Never present stale results as actionable.
   if result['last_scan'] and time.time()-result['last_scan']>max(2*self.interval,900):
    result['status']='stale'; result['selected']=None; result['results']=[]
    for agent in result['agents']:
     agent['status']='داده قدیمی'; agent['detail']='تا دریافت داده جدید نتیجه معتبر نیست'
   return result
+ def request_analysis(self,symbol):
+  if symbol not in self.symbols: raise ValueError('نماد در فهرست پیکربندی‌شده نیست')
+  with self.lock:
+   self.data['focus']=symbol; self.data['results']=[]; self.data['selected']=None
+   self.data['status']='starting'
+  self.event('درخواست تحلیل مجدد '+symbol)
+  self.wake_event.set()
  def run_once(self):
   now=time.time(); results=[]; errors=[]
   with self.lock:
@@ -70,9 +82,6 @@ class FuturesScanner:
        except Exception: data['missing'].append(key)
       else: data['missing'].append(key)
      data['missing']+=['order_book','news','whale_attribution']
-     derivatives=next(agent for agent in data['agents'] if agent['name']=='Derivatives analyst')
-     if data['funding_rate'] is not None or data['open_interest'] is not None:
-      derivatives['status']='داده جزئی'; derivatives['detail']='Funding: '+str(data['funding_rate'])+' / OI: '+str(data['open_interest'])+'؛ در رأی استفاده نمی‌شود'
      results.append(data)
      self.event(symbol+' · نتیجه '+direction)
     except Exception as e:
@@ -97,8 +106,8 @@ class FuturesScanner:
   return state
  def loop(self):
   while not self.stop_event.is_set():
-   self.run_once(); self.stop_event.wait(self.interval)
+   self.run_once(); self.wake_event.wait(self.interval); self.wake_event.clear()
  def start(self):
   if not self.thread or not self.thread.is_alive():
    self.thread=threading.Thread(target=self.loop,name='futures-scanner',daemon=True); self.thread.start()
- def stop(self): self.stop_event.set()
+ def stop(self): self.stop_event.set(); self.wake_event.set()

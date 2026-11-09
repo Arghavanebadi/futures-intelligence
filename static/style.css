@@ -6,3 +6,5 @@
 .whale-item{direction:ltr;text-align:left;white-space:pre-wrap;overflow-wrap:anywhere;max-height:180px;overflow:auto;background:#0b0c12;border:1px solid #292934;border-radius:6px;padding:8px;font-size:9px}.tradeform select{display:block;margin-top:10px;width:100%}
 
 .activitylog{max-height:240px;overflow:auto;margin-top:12px}.activityrow{display:flex;gap:18px;border-top:1px solid #292932;padding:9px;color:#aaa;font-size:11px}.activityrow span:first-child{color:#777;min-width:70px;direction:ltr}.insightbody p{white-space:pre-wrap}
+
+.choose-panel{display:flex;align-items:center;justify-content:space-between;gap:18px;margin-bottom:24px}.choose-panel h3{margin-top:8px}.choose-panel .tiny{text-align:right}.choose-controls{display:flex;align-items:center;gap:10px;direction:ltr}.choose-controls select{min-width:180px;background:#20202c;border:1px solid #464052;border-radius:8px;padding:12px}.choose-controls .primary{width:auto;margin:0;white-space:nowrap}@media(max-width:700px){.choose-panel{align-items:stretch;flex-direction:column}.choose-controls{flex-direction:column}.choose-controls select,.choose-controls .primary{width:100%}}

@@ -44,6 +44,13 @@ def evaluate(rows, now=None):
     meanvote=1 if p<x['mean20']-2*x['sd20'] else -1 if p>x['mean20']+2*x['sd20'] else 0
     volumevote=(1 if x['return5']>0 else -1) if x['volume_ratio']>1.2 else 0
     pricevote=1 if x['return5']>1 else -1 if x['return5'] < -1 else 0
+    high14=max(row['high'] for row in rows[-14:]); low14=min(row['low'] for row in rows[-14:])
+    stochastic=100*(p-low14)/(high14-low14) if high14>low14 else 50
+    volume20=sum(row['volume'] for row in rows[-20:])
+    vwap=sum(((row['high']+row['low']+row['close'])/3)*row['volume'] for row in rows[-20:])/volume20 if volume20 else None
+    candle=rows[-1]; candle_range=candle['high']-candle['low']
+    body=abs(candle['close']-candle['open'])/candle_range*100 if candle_range else 0
+    previous5=(rows[-6]['close']/rows[-11]['close']-1)*100
     agents=[
       agent('Trend architect','روند EMA','صعودی' if trend==1 else 'نزولی' if trend==-1 else 'خنثی',f"EMA12 {x['ema12']:.2f} / EMA26 {x['ema26']:.2f}",trend),
       agent('Momentum analyst','مومنتوم RSI','مثبت' if momentum==1 else 'منفی' if momentum==-1 else 'خنثی',f"RSI14 {x['rsi']:.1f}",momentum),
@@ -55,11 +62,11 @@ def evaluate(rows, now=None):
       agent('Market regime','وضعیت بازار','رونددار' if abs(x['ema12']-x['ema26'])/p>.005 else 'خنثی','فاصله نسبی EMAها'),
       agent('Risk manager','کنترل ریسک','رد' if atrpct>3 else 'پذیرش مشروط','فیلتر نوسان؛ اندازه موقعیت محاسبه نمی‌شود'),
       agent('Data quality','کیفیت داده','تأیید','ترتیب، پیوستگی، قیمت، حجم و تازگی در صورت دسترسی'),
-      agent('Cost analyst','هزینه اجرا','فرضی','هزینه واقعی برای سیگنال محاسبه نمی‌شود'),
-      agent('Liquidity analyst','نقدشوندگی','ناموجود','دفتر سفارش و اسپرد واقعی دریافت نمی‌شود'),
-      agent('Derivatives analyst','مشتقات','ناموجود','فاندینگ، لیکوییدیشن و بهره باز دریافت نمی‌شود'),
-      agent('News & sentiment','اخبار و احساسات','ناموجود','هیچ منبع خبری یا احساساتی متصل نیست'),
-      agent('Grok strategist','تحلیل زبانی اختیاری','غیرفعال','غیرفعال؛ در این نسخه به مدل متصل نیست')]
+      agent('Stochastic analyst','استوکاستیک','بالا' if stochastic>80 else 'پایین' if stochastic<20 else 'متعادل',f'Stochastic 14 · {stochastic:.1f}'),
+      agent('VWAP analyst','میانگین وزنی حجم','بالای میانگین' if vwap and p>vwap else 'زیر میانگین' if vwap else 'حجم ناموجود',f'Rolling 20H VWAP · {vwap:.2f}' if vwap else 'حجم کافی نیست'),
+      agent('Range analyst','دامنه معاملاتی','محاسبه شد',f"20H range · {(x['high20']-x['low20'])/p*100:.2f}%"),
+      agent('Candle analyst','ساختار کندل','صعودی' if candle['close']>candle['open'] else 'نزولی' if candle['close']<candle['open'] else 'خنثی',f'Body / range · {body:.1f}%'),
+      agent('Acceleration analyst','شتاب بازده','محاسبه شد',f"5H return change · {x['return5']-previous5:+.2f} pp")]
     votes=sum(a['vote'] for a in agents); positives=sum(a['vote']>0 for a in agents); negatives=sum(a['vote']<0 for a in agents)
     action='WATCH_LONG' if positives>=3 and votes>=3 and atrpct<=3 else 'AVOID' if negatives>=3 and votes<=-3 and atrpct<=3 else 'NO_SIGNAL'
     stop=max(0,p-2*x['atr']); target=p+3*x['atr']

@@ -36,7 +36,12 @@ class Tests(unittest.TestCase):
  def test_progress_and_agent_results(self):
   scan=FuturesScanner(factory=FakeExchange);scan.symbols=['BTC/USDT:USDT'];scan.run_once();state=scan.get()
   self.assertEqual(state['progress']['completed'],1);self.assertEqual(len(state['agents']),15)
-  self.assertEqual(next(a for a in state['agents'] if a['name']=='Derivatives analyst')['status'],'داده جزئی')
+  self.assertEqual(next(a for a in state['agents'] if a['name']=='Stochastic analyst')['role'],'استوکاستیک')
+ def test_request_focus_and_result(self):
+  scan=FuturesScanner(factory=FakeExchange);scan.symbols=['BTC/USDT:USDT'];scan.request_analysis('BTC/USDT:USDT')
+  self.assertIsNone(scan.get()['selected']);scan.run_once();state=scan.get()
+  self.assertEqual(state['selected']['symbol'],'BTC/USDT:USDT');self.assertEqual(len(state['agents']),15)
+  with self.assertRaises(ValueError): scan.request_analysis('INVALID')
  def test_incomplete_candle_is_not_used(self):
   rows=sample(); now=time.time(); rows[-1]['time']=int(now//3600)*3600
   self.assertFalse(research.evaluate(rows,now=now)['valid'])

@@ -7,6 +7,18 @@ from scanner import FuturesScanner
 ROOT=Path(__file__).resolve().parent
 scanner=FuturesScanner()
 class Handler(BaseHTTPRequestHandler):
+ def do_POST(self):
+  try:
+   if self.path!='/api/analyze': self.send_error(404); return
+   host=self.headers.get('Host',''); port=self.server.server_port
+   allowed=(f'127.0.0.1:{port}',f'localhost:{port}')
+   if host not in allowed or (self.headers.get('Origin') and self.headers['Origin'] not in tuple('http://'+x for x in allowed)): raise ValueError('درخواست نامعتبر است')
+   if self.headers.get_content_type()!='application/json': raise ValueError('نوع درخواست نامعتبر است')
+   length=int(self.headers.get('Content-Length','0'))
+   if length<1 or length>1024: raise ValueError('اندازه درخواست نامعتبر است')
+   data=json.loads(self.rfile.read(length)); scanner.request_analysis(data.get('symbol'))
+   body=json.dumps({'ok':True}).encode(); self.send_response(202); self.send_header('Content-Type','application/json'); self.send_header('Content-Length',str(len(body))); self.end_headers(); self.wfile.write(body)
+  except (ValueError,TypeError,AttributeError): self.send_error(400,'Invalid request')
  def do_GET(self):
   route=urlparse(self.path).path
   if route=='/api/scan':
