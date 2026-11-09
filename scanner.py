@@ -11,7 +11,11 @@ class FuturesScanner:
   self.data={'status':'starting','exchange':self.exchange_id,'last_scan':None,'next_scan':None,'results':[],'errors':[],'selected':None,'scope':'USDT perpetual swaps'}
  def client(self):
   if self.factory: return self.factory()
-  import ccxt
+  if self.exchange_id=='bybit':
+   from bybit_public import BybitPublic
+   return BybitPublic(self.symbols)
+  try: import ccxt
+  except ImportError: raise ValueError('برای این صرافی باید کتابخانه CCXT نصب شود') from None
   if self.exchange_id not in ccxt.exchanges: raise ValueError('صرافی در CCXT پشتیبانی نمی‌شود')
   return getattr(ccxt,self.exchange_id)({'enableRateLimit':True,'timeout':15000,'options':{'defaultType':'swap'}})
  def get(self):
