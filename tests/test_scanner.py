@@ -32,6 +32,11 @@ class Tests(unittest.TestCase):
  def test_provider_failure_never_produces_signal(self):
   def fail(): raise RuntimeError('unavailable')
   scan=FuturesScanner(factory=fail);r=scan.run_once();self.assertEqual(r['status'],'error');self.assertIsNone(r['selected'])
+  state=scan.get();self.assertEqual(len(state['agents']),15);self.assertTrue(all(a['status']=='بدون داده' for a in state['agents']));self.assertTrue(any(e['level']=='error' for e in state['activity']))
+ def test_progress_and_agent_results(self):
+  scan=FuturesScanner(factory=FakeExchange);scan.symbols=['BTC/USDT:USDT'];scan.run_once();state=scan.get()
+  self.assertEqual(state['progress']['completed'],1);self.assertEqual(len(state['agents']),15)
+  self.assertEqual(next(a for a in state['agents'] if a['name']=='Derivatives analyst')['status'],'داده جزئی')
  def test_incomplete_candle_is_not_used(self):
   rows=sample(); now=time.time(); rows[-1]['time']=int(now//3600)*3600
   self.assertFalse(research.evaluate(rows,now=now)['valid'])

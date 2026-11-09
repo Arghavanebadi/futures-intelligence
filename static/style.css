@@ -4,3 +4,5 @@
 .research-result{color:#d4cede;font-size:11px;line-height:2.2;margin-top:18px;min-height:48px}.agentstate{max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
 .whale-item{direction:ltr;text-align:left;white-space:pre-wrap;overflow-wrap:anywhere;max-height:180px;overflow:auto;background:#0b0c12;border:1px solid #292934;border-radius:6px;padding:8px;font-size:9px}.tradeform select{display:block;margin-top:10px;width:100%}
+
+.activitylog{max-height:240px;overflow:auto;margin-top:12px}.activityrow{display:flex;gap:18px;border-top:1px solid #292932;padding:9px;color:#aaa;font-size:11px}.activityrow span:first-child{color:#777;min-width:70px;direction:ltr}.insightbody p{white-space:pre-wrap}

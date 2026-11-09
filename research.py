@@ -61,7 +61,7 @@ def evaluate(rows, now=None):
       agent('News & sentiment','اخبار و احساسات','ناموجود','هیچ منبع خبری یا احساساتی متصل نیست'),
       agent('Grok strategist','تحلیل زبانی اختیاری','غیرفعال','غیرفعال؛ در این نسخه به مدل متصل نیست')]
     votes=sum(a['vote'] for a in agents); positives=sum(a['vote']>0 for a in agents); negatives=sum(a['vote']<0 for a in agents)
-    action='WATCH_LONG' if positives>=3 and votes>=3 and atrpct<=3 else 'AVOID' if negatives>=3 and votes<=-3 else 'NO_SIGNAL'
+    action='WATCH_LONG' if positives>=3 and votes>=3 and atrpct<=3 else 'AVOID' if negatives>=3 and votes<=-3 and atrpct<=3 else 'NO_SIGNAL'
     stop=max(0,p-2*x['atr']); target=p+3*x['atr']
     return {'valid':True,'errors':[],'action':action,'votes':votes,'positive':positives,'negative':negatives,'agents':agents,'indicators':x,'stop_reference':stop,'target_reference':target,'limitations':['صرفاً پژوهشی؛ هیچ تضمین یا احتمال موفقیتی وجود ندارد','داده‌های دفتر سفارش، اخبار و مشتقات در دسترس نیستند','حد ضرر و هدف فقط سطح محاسباتی‌اند و سفارش محافظ ثبت نمی‌شود']}
 
